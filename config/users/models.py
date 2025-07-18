@@ -1,0 +1,59 @@
+from django.db import models
+from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
+from django.contrib.auth.hashers import identify_hasher, make_password
+from django.utils import timezone
+
+class CustomUserManager(BaseUserManager):
+    USERNAME_REQUIRED = "The username field must be set"
+    STAFF_REQUIRED = "Superuser must have is_staff as True"
+    SUPERUSER_REQUIRED = "Superuser must have is_superuser as True"
+
+
+    def create_user(self, username, password=None, **extra_fields):
+        if not username:
+            raise ValueError(self.USERNAME_REQUIRED)
+        user = self.model(username=user, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+
+
+    def create_superuser(self, username, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError(self.STAFF_REQUIRED)
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError(self.SUPERUSER_REQUIRED)
+        
+        return self.create_user(username=username, password=password, **extra_fields)
+
+
+
+
+
+
+
+class User(AbstractBaseUser, PermissionsMixin):
+    username = models.CharField(max_length=30, unique=True)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    date_joined = models.DateTimeField(default=timezone.now)
+
+    USERNAME_FIELD = "username"
+    objects = CustomUserManager()
+
+
+    def save(self, *args, **kwargs):
+        if self.password:
+            try:
+                identify_hasher(self.password)
+            except ValueError:
+                self.password = make_password(self.password)
+        super().save(*args, **kwargs)
+
+
+    def __str__(self):
+        return self.username
