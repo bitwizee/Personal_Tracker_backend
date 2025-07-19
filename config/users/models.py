@@ -2,6 +2,9 @@ from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
 from django.contrib.auth.hashers import identify_hasher, make_password
 from django.utils import timezone
+from polymorphic.models import PolymorphicModel
+
+
 
 class CustomUserManager(BaseUserManager):
     USERNAME_REQUIRED = "The username field must be set"
@@ -36,7 +39,7 @@ class CustomUserManager(BaseUserManager):
 
 
 
-class User(AbstractBaseUser, PermissionsMixin):
+class User(PolymorphicModel, AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=30, unique=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -55,5 +58,23 @@ class User(AbstractBaseUser, PermissionsMixin):
         super().save(*args, **kwargs)
 
 
+    def __str__(self):
+        return self.username
+    
+
+
+
+
+class Customer(User):
+    email = models.EmailField(unique=True)
+    image = models.ImageField(upload_to='customers/', null=True, blank=True)
+
+
+    def save(self, *args, **kwargs):
+        if self.email:
+            self.username = self.email.split('@')[0]
+        super().save(*args, **kwargs)
+
+    
     def __str__(self):
         return self.username
