@@ -38,7 +38,6 @@ class CustomUserManager(BaseUserManager):
 
 
 
-
 class User(PolymorphicModel, AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=30, unique=True)
     is_active = models.BooleanField(default=True)
@@ -78,3 +77,29 @@ class Customer(User):
     
     def __str__(self):
         return self.username
+    
+
+
+
+
+
+
+class OTP(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='otps')
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_expired = models.BooleanField(default=False)
+    expired_at = models.DateTimeField(null=True, blank=True)
+    attempts = models.PositiveIntegerField(default=5)
+
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["customer", "created_at"])
+        ]
+
+    def mark_otp_expired(self):
+        if not self.is_expired:
+            self.is_expired = True
+            self.expired_at = timezone.now()
+            self.save(update_fields=["is_expired", "expired_at"])
